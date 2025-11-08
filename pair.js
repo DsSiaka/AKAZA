@@ -48,7 +48,7 @@ const config = {
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029Vb6T8td5K3zQZbsKEU1R'
 };
 
-import { Octokit } from "@octokit/rest";
+
 
 // Récupère ton token GitHub depuis les variables d’environnement
 const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || process.env.GH_TOKEN;
