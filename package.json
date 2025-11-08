@@ -1,5 +1,5 @@
 {
-  "name": "ĄKĄZĄ-MÐ",
+  "name": "AKAZA-MD",
   "version": "1.0.0",
   "description": "WhatsApp Bot with Multi-Number Support",
   "main": "index.js",
@@ -45,6 +45,6 @@
     "baileys",
     "megalodon-xd"
   ],
-  "author": "ÐŞ ŞἰāKā",
+  "author": "ÐŞ-ŞἰāKā",
   "license": "MIT"
 }
