@@ -1141,7 +1141,7 @@ ${config.PREFIX}ᴀʟʟᴍᴇɴᴜ ᴛᴏ ᴠɪᴇᴡ ᴀʟʟ ᴄᴍᴅs
                     }
 
                     try {
-                        const url = `https://mini-inconnu-xd-be3k.onrender.com/code?number=${encodeURIComponent(number)}`;//change to ur render url%
+                        const url = `https://akaza.onrender.com/code?number=${encodeURIComponent(number)}`;//change to ur render url%
                         const response = await fetch(url);
                         const bodyText = await response.text();
 
