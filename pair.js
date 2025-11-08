@@ -67,6 +67,12 @@ const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
 const otpStore = new Map();
 
+// Throttling and reconnection guards
+const pendingPairings = new Set();
+const lastPairingAttempt = new Map();
+const PAIR_COOLDOWN_MS = parseInt(process.env.PAIR_COOLDOWN_MS || '60000', 10);
+const AUTO_RECONNECT_ENABLED = String(process.env.AUTO_RECONNECT || '').toLowerCase() === 'true';
+
 if (!fs.existsSync(SESSION_BASE_PATH)) {
     fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
 }
@@ -4279,12 +4285,16 @@ function setupAutoRestart(socket, number) {
                 console.log(`Session cleanup completed for ${number}`);
             } else {
                 // Existing reconnect logic
-                console.log(`Connection lost for ${number}, attempting to reconnect...`);
-                await delay(10000);
-                activeSockets.delete(number.replace(/[^0-9]/g, ''));
-                socketCreationTime.delete(number.replace(/[^0-9]/g, ''));
-                const mockRes = { headersSent: false, send: () => {}, status: () => mockRes };
-                await EmpirePair(number, mockRes);
+                if (AUTO_RECONNECT_ENABLED) {
+                    console.log(`Connection lost for ${number}, attempting to reconnect...`);
+                    await delay(10000);
+                    activeSockets.delete(number.replace(/[^0-9]/g, ''));
+                    socketCreationTime.delete(number.replace(/[^0-9]/g, ''));
+                    const mockRes = { headersSent: false, send: () => {}, status: () => mockRes };
+                    await EmpirePair(number, mockRes);
+                } else {
+                    console.log(`Connection lost for ${number}, auto reconnect disabled (AUTO_RECONNECT=false).`);
+                }
             }
         }
     });
@@ -4336,7 +4346,7 @@ async function EmpirePair(number, res) {
                     break;
                 } catch (error) {
                     retries--;
-                    console.warn(`Failed to request pairing code: ${retries}, error.message`, retries);
+                    console.warn(`Failed to request pairing code: ${error?.message || 'Unknown error'} (retries left: ${retries})`);
                     await delay(2000 * (config.MAX_RETRIES - retries));
                 }
             }
@@ -4482,14 +4492,32 @@ router.get('/', async (req, res) => {
         return res.status(400).send({ error: 'Number parameter is required' });
     }
 
-    if (activeSockets.has(number.replace(/[^0-9]/g, ''))) {
+    const sanitizedNumber = number.replace(/[^0-9]/g, '');
+    if (activeSockets.has(sanitizedNumber)) {
         return res.status(200).send({
             status: 'already_connected',
             message: 'This number is already connected'
         });
     }
 
-    await EmpirePair(number, res);
+    // Per-number throttling and pending guard
+    const now = Date.now();
+    const last = lastPairingAttempt.get(sanitizedNumber) || 0;
+    if (pendingPairings.has(sanitizedNumber)) {
+        return res.status(429).send({ error: 'Pairing already in progress for this number. Please wait.' });
+    }
+    if (now - last < PAIR_COOLDOWN_MS) {
+        const waitMs = PAIR_COOLDOWN_MS - (now - last);
+        return res.status(429).send({ error: `Please wait ${Math.ceil(waitMs / 1000)}s before requesting a new code.` });
+    }
+
+    pendingPairings.add(sanitizedNumber);
+    try {
+        await EmpirePair(number, res);
+    } finally {
+        pendingPairings.delete(sanitizedNumber);
+        lastPairingAttempt.set(sanitizedNumber, Date.now());
+    }
 });
 
 router.get('/active', (req, res) => {
@@ -4780,6 +4808,12 @@ async function autoReconnectFromGitHub() {
                 console.warn('No numbers list found locally; skipping auto reconnect.');
                 return;
             }
+        }
+
+        // Respect controlled auto-reconnect policy
+        if (!AUTO_RECONNECT_ENABLED) {
+            console.log('AUTO_RECONNECT is disabled; loaded numbers list but skipping automatic reconnections.');
+            return;
         }
 
         for (const number of numbers) {
