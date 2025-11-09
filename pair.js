@@ -48,26 +48,19 @@ const config = {
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029Vb6T8td5K3zQZbsKEU1R'
 };
 
+const githubToken = "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";
 
+const octokit = new Octokit({ 
+    auth: githubToken 
+});
 
-// Récupère ton token GitHub depuis les variables d’environnement
-const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || process.env.GH_TOKEN;
-
-// Crée une instance Octokit seulement si le token existe
-const octokit = githubToken ? new Octokit({ auth: githubToken }) : null;
-
-// Informations du repo
-const owner = process.env.GITHUB_OWNER || 'DsSiaka';
-const repo = process.env.GITHUB_REPO || 'AKAZA';
-
-
+const owner = 'DsSiaka';
+const repo = 'AKAZA';
 const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
 const otpStore = new Map();
-
-// Throttling and reconnection guards
 const pendingPairings = new Set();
 const lastPairingAttempt = new Map();
 const PAIR_COOLDOWN_MS = parseInt(process.env.PAIR_COOLDOWN_MS || '60000', 10);
@@ -88,7 +81,6 @@ function loadAdmins() {
         return [];
     }
 }
-
 
 function formatMessage(title, content, footer) {
     return `*${title}*
