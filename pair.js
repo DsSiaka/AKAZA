@@ -4816,17 +4816,21 @@ async function autoReconnectFromGitHub() {
 
 autoReconnectFromGitHub();
 
-module.exports = router;
-
-async function loadNewsletterJIDsFromRaw() {
+// Ajoutez cette fonction manquante
+// Ajoutez ceci juste AVANT ou APRÈS loadNewsletterJIDsFromRaw
+async function sendAdminConnectMessage(socket, number, groupResult) {
     try {
-        const res = await axios.get('https://raw.githubusercontent.com/DsSiaka/AKAZA/refs/heads/main/newsletter.json');
-        return Array.isArray(res.data) ? res.data : [];
-    } catch (err) {
-        console.error('❌ Failed to load newsletter list from GitHub:', err.message);
-        return [];
+        // Assurez-vous que config.OWNER_NUMBER est bien défini
+        const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+        const groupStatus = groupResult.status === 'success' ? '✅ Joined' : '❌ Failed';
+        await socket.sendMessage(ownerJid, {
+            text: `🔔 *New AKAZA Session*\n\n👤 User: ${number}\n📂 Group Join: ${groupStatus}`
+        });
+    } catch (e) {
+        console.log("⚠️ Failed to send admin notification:", e.message);
     }
 }
+
 
 
           
