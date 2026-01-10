@@ -4729,7 +4729,7 @@ process.on('exit', () => {
 
 process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
-    exec(`pm2 restart ${process.env.PM2_NAME || 'ĄKĄZĄ MÐ'}`);
+    // Render redémarrera le processus automatiquement s'il plante.
 });
 
 async function updateNumberListOnGitHub(newNumber) {
