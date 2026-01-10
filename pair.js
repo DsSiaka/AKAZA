@@ -47,9 +47,7 @@ const config = {
     BOT_FOOTER: '> ᴍᴀᴅᴇ ɪɴ ʙʏ ÐŞ ŞἰāKā ',
     CHANNEL_LINK: 'https://whatsapp.com/channel/0029Vb6T8td5K3zQZbsKEU1R'
 };
-
-const githubToken = "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";
-
+const githubToken = process.env.GITHUB_TOKEN;
 const octokit = new Octokit({ 
     auth: githubToken 
 });
@@ -4242,19 +4240,14 @@ function setupAutoRestart(socket, number) {
     socket.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            if (statusCode === 401) { // 401 indicates user-initiated logout
-                console.log(`User ${number} logged out. Deleting session...`);
-                
-                // Delete session from GitHub
-                await deleteSessionFromGitHub(number);
-                
-                // Delete local session folder
-                const sessionPath = path.join(SESSION_BASE_PATH, `session_${number.replace(/[^0-9]/g, '')}`);
-                if (fs.existsSync(sessionPath)) {
-                    fs.removeSync(sessionPath);
-                    console.log(`Deleted local session folder for ${number}`);
-                }
+    let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
+    console.log("Connexion fermée, raison:", reason);
+    // Ne pas utiliser exec(pm2 restart) ici. Appelez simplement EmpirePair() pour relancer la logique interne
+    if (AUTO_RECONNECT_ENABLED) {
+         await delay(5000);
+         EmpirePair(number, res);
+    }
+}
 
                 // Remove from active sockets
                 activeSockets.delete(number.replace(/[^0-9]/g, ''));
